@@ -1,0 +1,90 @@
+---
+title: "Analysis of the Plant Growth dataset in R"
+author: "Danielle Harris"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+The PlantGrowth data set contains the dried weight of plants from 3 treatments (control, treatment 1 and treatment 2) which each have 10 replicates. 
+
+First things first, lets load the libraries we will need to wrangle and plot the data. 
+
+```{r}
+library(ggplot2)
+library(tidyverse)
+library(ggsignif)
+```
+
+Next, we take a look at the data. The str() function allows use to check the structure of our data by telling us how many rows and columns are in our dataframe and the type of data in each column. The head() function gives us a look at the top 6 rows. 
+
+```{r}
+
+str(PlantGrowth)
+
+head(PlantGrowth)
+```
+
+Once we've taken a look at what the data looks like we should create some exploratory plots. To determine whether the data are normally distributed, we can plot a histogram. 
+
+```{r}
+ggplot(PlantGrowth, aes(x=weight))+
+  geom_histogram(aes(y=..density..), binwidth = 0.4, fill= 'lightgray', col= 1)+
+  geom_density(lwd = 1, colour = 4,
+               fill = 4, alpha = 0.25)+
+  theme_bw()+
+  labs(x='Weight', y='Density')
+```
+
+The data look to be normally distributed. 
+
+We can also create a boxplot to check the spread of the data. I like to also include a point to indicate the mean value of each group. 
+
+```{r}
+ggplot(PlantGrowth, aes(x=group, y=weight, fill = group))+
+  geom_boxplot()+
+  stat_summary(fun=mean, geom="point", shape=20, size=6, color="red", fill="red") +
+  theme_bw()+
+  labs(y="Weight", fill='Group')+
+  scale_fill_manual(values = c('ctrl' = 'gray',
+                               'trt1' = 'lightgreen',
+                               'trt2' = 'forestgreen'))+
+  theme(axis.title.x = element_blank())
+```
+
+From the boxplot, it looks like the dry weight of plants are the most dissimilar between treatments 1 and 2 and the most similar between the control treatment and treatment 1. To test if there is a significant effect of group on yield (dry plant weight) we can use a one-way ANOVA.
+
+```{r}
+model1<-aov(weight~group, data = PlantGrowth)   
+summary(model1)
+```
+
+There is a significant effect of treatment group. To determine which treatments the weights of plants significantly differ between, we can use a Tukey's honest significance test.
+
+```{r}
+TukeyHSD(model1)
+```
+
+From these results we see that our interpretation of the boxplot is supported by the results of the one-way ANOVA. Neither treatment 1 or treatment 2 significantly differ from the control group. However, the weight of plants in treatment 1 significantly differs to the weights of plants in treatment 2.
+
+We can update our boxplot to indicate which treatments significantly differ from one another.
+
+```{r}
+ggplot(PlantGrowth, aes(x=group, y=weight, fill = group))+
+  geom_boxplot()+
+  stat_summary(fun=mean, geom="point", shape=20, size=6, color="red", fill="red") +
+  theme_bw()+
+  labs(y="Weight", fill='Group')+
+  scale_fill_manual(values = c('ctrl' = 'gray',
+                               'trt1' = 'lightgreen',
+                               'trt2' = 'forestgreen'))+
+  theme(axis.title.x = element_blank())+
+  geom_signif(comparisons = list(c("trt1", "trt2")), 
+            map_signif_level=TRUE)
+```
+
+
